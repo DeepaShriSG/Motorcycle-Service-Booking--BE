@@ -1,0 +1,60 @@
+To create vehicle details
+const bookService = async (req, res) => {
+  try {
+    // Ensure the token exists before attempting to decode
+    const token = req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).send({
+        message: "Unauthorized: Token is missing",
+      });
+    }
+
+    // Decode the token to get user information
+    const data = await Auth.decodeToken(token);
+
+    
+    // Find the user based on the decoded email
+    const user = await userModel.findOne({ email: data.email });
+
+    console.log(req.body)
+
+    // const service = req.body;
+
+    if (user) {
+      // Create a new service object
+      const newService = await Service.create(req.body);
+
+      console.log(newService);
+
+      const { brand, model, manufactureyear, servicetype, comments } =
+        newService;
+
+      // Update the user's currentService array with the saved services
+      user.currentService.push({
+        brand,
+        model,
+        manufactureyear,
+        servicetype,
+        comments,
+      });
+
+      // Save the updated user to the database
+      await user.save();
+
+      res.status(201).send({
+        message: `Service for the user with email ${data.email} booked and updated`,
+      });
+    } else {
+      // If the user does not exist, return a 404 error
+      res.status(404).send({
+        message: `User with email ${data.email} does not exist`,
+      });
+    }
+  } catch (error) {
+    res.status(500).send({
+      message: "Internal Server Error",
+      error: error.message,
+    });
+  }
+};
